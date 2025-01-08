@@ -1,0 +1,1 @@
+# Vaalue AI Polylang Translator

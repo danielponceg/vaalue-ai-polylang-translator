@@ -27,6 +27,20 @@
     color: #135e96;
 }
 
+.vapt-status-text {
+    color: #666;
+}
+
+.vapt-status-text.vapt-translated {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.vapt-status-text.current {
+    color: #28a745;
+    font-weight: bold;
+}
+
 .vapt-translation-link {
     color: #28a745;
     font-weight: 600;

@@ -47,18 +47,34 @@ $translations = pll_get_post_translations($post->ID);
 <div id="vapt-translation-dialog" class="vapt-dialog" style="display: none;">
     <div class="vapt-dialog-content">
         <h3><?php _e('Confirm Translation', 'vaalue-ai-polylang-translator'); ?></h3>
-        <p><?php _e('Select target languages for translation:', 'vaalue-ai-polylang-translator'); ?></p>
-        <div class="vapt-language-options">
-            <?php foreach ($language_locales as $lang): ?>
-                <?php if ($lang === $current_lang || isset($translations[$lang])) continue; ?>
-                <label class="vapt-language-option">
-                    <input type="checkbox" 
-                           name="vapt_target_languages[]" 
-                           value="<?php echo esc_attr($lang); ?>">
-                    <?php echo esc_html($language_map[$lang]); ?>
-                </label>
-            <?php endforeach; ?>
+        
+        <div class="vapt-model-selection">
+            <h4><?php _e('Select AI Model:', 'vaalue-ai-polylang-translator'); ?></h4>
+            <label class="vapt-model-option">
+                <input type="radio" name="vapt_model" value="gpt-3.5-turbo" checked>
+                <?php _e('GPT-3.5 Turbo (Faster, more economical)', 'vaalue-ai-polylang-translator'); ?>
+            </label>
+            <label class="vapt-model-option">
+                <input type="radio" name="vapt_model" value="gpt-4">
+                <?php _e('GPT-4 (Higher quality, more accurate)', 'vaalue-ai-polylang-translator'); ?>
+            </label>
         </div>
+
+        <div class="vapt-language-selection">
+            <h4><?php _e('Select target languages:', 'vaalue-ai-polylang-translator'); ?></h4>
+            <div class="vapt-language-options">
+                <?php foreach ($language_locales as $lang): ?>
+                    <?php if ($lang === $current_lang || isset($translations[$lang])) continue; ?>
+                    <label class="vapt-language-option">
+                        <input type="checkbox" 
+                               name="vapt_target_languages[]" 
+                               value="<?php echo esc_attr($lang); ?>">
+                        <?php echo esc_html($language_map[$lang]); ?>
+                    </label>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
         <div class="vapt-dialog-buttons">
             <button type="button" class="button vapt-cancel-button">
                 <?php _e('Cancel', 'vaalue-ai-polylang-translator'); ?>
@@ -94,35 +110,29 @@ $translations = pll_get_post_translations($post->ID);
         <h4><?php _e('Translation Status:', 'vaalue-ai-polylang-translator'); ?></h4>
         <?php foreach ($language_locales as $lang): ?>
             <?php if ($lang === $current_lang): ?>
-                <div class="vapt-language-status">
+                <div class="vapt-language-status" data-lang="<?php echo esc_attr($lang); ?>">
                     <span class="vapt-language"><?php echo esc_html($language_map[$lang]); ?>:</span>
-                    <span class="vapt-status current">
+                    <span class="vapt-status-text current">
                         <?php _e('Current', 'vaalue-ai-polylang-translator'); ?>
                     </span>
                 </div>
             <?php else: ?>
-                <div class="vapt-language-status">
+                <div class="vapt-language-status" data-lang="<?php echo esc_attr($lang); ?>">
                     <span class="vapt-language"><?php echo esc_html($language_map[$lang]); ?>:</span>
+                    <span class="vapt-status-text">
                     <?php
-                    $has_translation = isset($translations[$lang]);
-                    if ($has_translation && $translated_post = get_post($translations[$lang])) {
+                    $has_translation = isset($translations[substr($lang, 0, 2)]);
+                    if ($has_translation && $translated_post = get_post($translations[substr($lang, 0, 2)])) {
                         echo sprintf(
-                            '<a href="%s" target="_blank" class="vapt-translation-link">%s</a>',
-                            get_edit_post_link($translations[$lang]),
-                            esc_html(get_the_title($translations[$lang]))
+                            '<a href="%s" target="_blank" class="vapt-translation-link vapt-translated">%s</a>',
+                            get_edit_post_link($translations[substr($lang, 0, 2)]),
+                            __('Translated', 'vaalue-ai-polylang-translator')
                         );
-                    } else {
-                        ?>
-                        <label class="vapt-checkbox-label">
-                            <input type="checkbox" 
-                                   name="vapt_target_languages[]" 
-                                   value="<?php echo esc_attr($lang); ?>"
-                                   class="vapt-language-checkbox">
-                            <?php _e('Translate', 'vaalue-ai-polylang-translator'); ?>
-                        </label>
-                        <?php
+                    } else {                        
+                        _e('Not translated', 'vaalue-ai-polylang-translator');
                     }
                     ?>
+                    </span>
                 </div>
             <?php endif; ?>
         <?php endforeach; ?>

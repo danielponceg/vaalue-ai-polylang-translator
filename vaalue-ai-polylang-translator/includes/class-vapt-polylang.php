@@ -23,7 +23,7 @@ class VAPT_Polylang {
         $this->translate_post($post_id);
     }
 
-    public function translate_post($post_id, $target_languages = array()) {
+    public function translate_post($post_id, $target_languages = array(), $model = 'gpt-3.5-turbo') {
         $post = get_post($post_id);
         $source_language = pll_get_post_language($post_id);
         $all_translations = pll_get_post_translations($post_id);
@@ -47,18 +47,24 @@ class VAPT_Polylang {
             }
 
             error_log("Starting translation to: " . $target_language);
-            $translated_title = $openai->translate_text($post->post_title, $target_language);
-            $translated_content = $openai->translate_text($post->post_content, $target_language);
-
-            if (is_wp_error($translated_title) || is_wp_error($translated_content)) {
-                $error_message = is_wp_error($translated_title) ? $translated_title->get_error_message() : $translated_content->get_error_message();
-                $translation_results[$target_language] = new WP_Error('translation_failed', sprintf(
-                    __('Translation failed for %s: %s', 'vaalue-ai-polylang-translator'), 
-                    $target_language,
-                    $error_message
-                ));
+            
+            // First translate the title
+            $translated_title = $openai->translate_text($post->post_title, $target_language, $model);
+            if (is_wp_error($translated_title)) {
+                error_log("Title translation failed: " . $translated_title->get_error_message());
+                $translation_results[$target_language] = $translated_title;
                 continue;
             }
+            
+            // Then translate the content
+            $translated_content = $openai->translate_text($post->post_content, $target_language, $model);
+            if (is_wp_error($translated_content)) {
+                error_log("Content translation failed: " . $translated_content->get_error_message());
+                $translation_results[$target_language] = $translated_content;
+                continue;
+            }
+
+            error_log("Translation completed successfully for: " . $target_language);
 
             $translated_post = array(
                 'post_title' => $translated_title,
@@ -80,13 +86,21 @@ class VAPT_Polylang {
                 // Save updated translations
                 pll_save_post_translations($all_translations);
                 
-                $translation_results[$target_language] = true;
+                $translation_results[$target_language] = array(
+                    'success' => true,
+                    'post_id' => $translated_post_id,
+                    'edit_link' => get_edit_post_link($translated_post_id, '')
+                );
                 error_log("Successfully created translation in: " . $target_language);
             } else {
-                $translation_results[$target_language] = new WP_Error('post_creation_failed', sprintf(
-                    __('Failed to create translated post for %s', 'vaalue-ai-polylang-translator'),
-                    $target_language
-                ));
+                error_log("Failed to create translation post in: " . $target_language . " - " . $translated_post_id->get_error_message());
+                $translation_results[$target_language] = new WP_Error(
+                    'post_creation_failed',
+                    sprintf(
+                        __('Failed to create translated post for %s', 'vaalue-ai-polylang-translator'),
+                        $target_language
+                    )
+                );
             }
         }
         

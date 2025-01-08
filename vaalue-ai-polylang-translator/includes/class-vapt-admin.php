@@ -5,6 +5,7 @@ class VAPT_Admin {
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
         add_action('add_meta_boxes', array($this, 'add_translation_metabox'));
         add_action('wp_ajax_vapt_translate_post', array($this, 'handle_translation_request'));
+        add_action('wp_ajax_vapt_check_translation_status', array($this, 'check_translation_status'));
     }
 
     public function add_admin_menu() {
@@ -75,32 +76,87 @@ class VAPT_Admin {
         
         $post_id = intval($_POST['post_id']);
         $target_languages = isset($_POST['target_languages']) ? (array)$_POST['target_languages'] : array();
+        $model = isset($_POST['model']) ? sanitize_text_field($_POST['model']) : 'gpt-3.5-turbo';
 
-        if (!$post_id) {
-            wp_send_json_error(array('message' => 'Invalid post ID'));
-            return;
-        }
-        
-        if (empty($target_languages)) {
-            wp_send_json_error(array('message' => 'No target languages selected'));
+        // Validate inputs...
+        if (!$post_id || empty($target_languages)) {
+            wp_send_json_error(array('message' => 'Invalid request parameters'));
             return;
         }
 
+        // Calculate estimated time based on content length and language count
         $post = get_post($post_id);
-        if (!$post) {
-            wp_send_json_error(array('message' => 'Post not found'));
+        $total_length = mb_strlen($post->post_title) + mb_strlen($post->post_content);
+        $estimated_time = $this->calculate_estimated_time($total_length, count($target_languages), $model);
+
+        // Store translation job info
+        $job_id = uniqid('vapt_', true);
+        $translation_job = array(
+            'post_id' => $post_id,
+            'languages' => $target_languages,
+            'model' => $model,
+            'start_time' => time(),
+            'estimated_time' => $estimated_time,
+            'status' => 'processing',
+            'results' => array()
+        );
+        set_transient($job_id, $translation_job, 24 * HOUR_IN_SECONDS);
+
+        // Start background processing
+        wp_schedule_single_event(time(), 'vapt_process_translation', array($job_id));
+
+        // Return immediately with job ID and estimated time
+        wp_send_json_success(array(
+            'job_id' => $job_id,
+            'message' => sprintf(
+                __('Translation started. Estimated time: %d minutes', 'vaalue-ai-polylang-translator'),
+                ceil($estimated_time / 60)
+            ),
+            'estimated_time' => $estimated_time
+        ));
+    }
+
+    private function calculate_estimated_time($content_length, $language_count, $model) {
+        // Base time per 1000 characters (in seconds)
+        $base_time = ($model === 'gpt-4') ? 8 : 5;
+        
+        // Calculate basic content processing time
+        $content_time = ($content_length / 1000) * $base_time;
+        
+        // Add overhead for each language
+        $language_overhead = 5; // seconds per language
+        
+        // Total estimated time in seconds
+        return ($content_time * $language_count) + ($language_overhead * $language_count);
+    }
+
+    public function check_translation_status() {
+        check_ajax_referer('vapt_translate_nonce', 'nonce');
+        
+        $job_id = sanitize_text_field($_POST['job_id']);
+        $translation_job = get_transient($job_id);
+
+        if (!$translation_job) {
+            wp_send_json_error(array('message' => 'Translation job not found'));
             return;
         }
-        
-        $polylang = new VAPT_Polylang();
-        $result = $polylang->translate_post($post_id, $target_languages);
-        
-        if (is_wp_error($result)) {
-            wp_send_json_error(array('message' => $result->get_error_message()));
+
+        $elapsed_time = time() - $translation_job['start_time'];
+        $progress = min(95, ($elapsed_time / $translation_job['estimated_time']) * 100);
+
+        if ($translation_job['status'] === 'completed') {
+            wp_send_json_success(array(
+                'status' => 'completed',
+                'results' => $translation_job['results']
+            ));
         } else {
             wp_send_json_success(array(
-                'message' => 'Translation completed',
-                'results' => $result
+                'status' => 'processing',
+                'progress' => $progress,
+                'message' => sprintf(
+                    __('Translation in progress (%d%%). Please wait...', 'vaalue-ai-polylang-translator'),
+                    $progress
+                )
             ));
         }
     }

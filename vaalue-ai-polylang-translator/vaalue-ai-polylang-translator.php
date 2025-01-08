@@ -3,7 +3,7 @@
  * Plugin Name: Vaalue AI-Powered Polylang Translator
  * Plugin URI: https://example.com/ai-polylang-translator
  * Description: Automatically translate WordPress content using OpenAI API and Polylang integration
- * Version: 1.1.3
+ * Version: 1.2.0
  * Author: Vaalue.co
  * Author URI: https://vaalue.co
  * Text Domain: vaalue-ai-polylang-translator

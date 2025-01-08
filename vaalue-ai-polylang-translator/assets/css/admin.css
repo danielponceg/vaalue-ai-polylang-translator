@@ -1,0 +1,135 @@
+.vapt-translation-metabox {
+    padding: 10px 0;
+}
+
+.vapt-translation-status {
+    margin: 15px 0;
+}
+
+.vapt-language-status {
+    display: flex;
+    justify-content: space-between;
+    margin: 5px 0;
+    padding: 5px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.vapt-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #2271b1;
+    cursor: pointer;
+}
+
+.vapt-checkbox-label:hover {
+    color: #135e96;
+}
+
+.vapt-translation-link {
+    color: #28a745;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.vapt-translation-link:hover {
+    color: #1e7e34;
+    text-decoration: underline;
+}
+
+.vapt-status {
+    font-weight: 600;
+}
+
+.vapt-status.current {
+    color: green;
+    font-weight: bold;
+}
+
+.vapt-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.vapt-translate-button {
+    width: 100%;
+}
+
+.vapt-actions .spinner {
+    float: none;
+}
+
+.vapt-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 159900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.vapt-dialog-content {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.vapt-language-options {
+    margin: 15px 0;
+}
+
+.vapt-language-option {
+    display: flex;
+    align-items: center;
+    margin: 8px 0;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.vapt-language-option input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+.vapt-translated-badge {
+    margin-left: auto;
+    font-size: 12px;
+    color: #28a745;
+}
+
+.vapt-dialog-buttons {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.vapt-results-content {
+    margin: 15px 0;
+}
+
+.vapt-result-item {
+    margin: 8px 0;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.vapt-result-success {
+    background: #d4edda;
+    color: #155724;
+}
+
+.vapt-result-error {
+    background: #f8d7da;
+    color: #721c24;
+}

@@ -1,19 +1,25 @@
 jQuery(document).ready(function($) {
+    console.log('AI Translator initialized');
+
+    // Check if translation dialog exists
     if ($('#vapt-translation-dialog').length === 0) {
+        console.error('Translation dialog not found');
         return;
     }
 
-    // Dialog handlers
+    // Close dialog when clicking outside
     $('.vapt-dialog').on('click', function(e) {
         if ($(e.target).hasClass('vapt-dialog')) {
             $(this).hide();
         }
     });
 
+    // Cancel button handler
     $('.vapt-cancel-button').on('click', function() {
         $('#vapt-translation-dialog').hide();
     });
 
+    // Close results button handler
     $('.vapt-close-results').on('click', function() {
         $('#vapt-results-dialog').hide();
         location.reload();
@@ -33,7 +39,16 @@ jQuery(document).ready(function($) {
             selectedLanguages.push($(this).val());
         });
 
-        if (!postId || selectedLanguages.length === 0) {
+        console.log('Translation requested for post ID:', postId);
+        console.log('Selected languages:', selectedLanguages);
+        console.log('Selected model:', selectedModel);
+
+        if (!postId) {
+            alert('Error: No post ID found');
+            return;
+        }
+
+        if (selectedLanguages.length === 0) {
             alert('Please select at least one language to translate');
             return;
         }
@@ -47,6 +62,8 @@ jQuery(document).ready(function($) {
         button.prop('disabled', true);
         spinner.addClass('is-active');
 
+        console.log('Starting translation for languages:', targetLanguages);
+
         $.ajax({
             url: ajaxurl,
             type: 'POST',
@@ -58,41 +75,23 @@ jQuery(document).ready(function($) {
                 nonce: vaptData.nonce
             },
             success: function(response) {
-                if (response.success && response.data) {
-                    if (response.data.results) {
-                        Object.entries(response.data.results).forEach(([lang, result]) => {
-                            const statusElement = $(`.vapt-language-status[data-lang="${lang}"] .vapt-status-text`);
-                            if (result && (result.success || result.edit_link)) {
-                                const editLink = result.edit_link || '#';
-                                statusElement.html(`<a href="${editLink}" target="_blank" class="vapt-translation-link vapt-translated">Translated</a>`);
-                            } else {
-                                statusElement.html('<span class="vapt-translation-error">Failed</span>');
-                            }
-                        });
-                    }
+                if (response.success) {
+                    console.log('Translation successful:', response);
+                    targetLanguages.forEach(lang => {
+                        const langCode = lang.substring(0, 2);
+                        const statusElement = $(`.vapt-language-status[data-lang="${lang}"] .vapt-status-text`);
+                        const editLink = response.data.results[lang]?.edit_link || '#';
+                        statusElement.html(`<a href="${editLink}" target="_blank" class="vapt-translation-link vapt-translated">Translated</a>`);
+                    });
                     showResults(response.data);
                 } else {
-                    showResults({
-                        results: targetLanguages.reduce((acc, lang) => {
-                            acc[lang] = { 
-                                success: false, 
-                                message: response.data?.message || 'Translation failed. Please try again.'
-                            };
-                            return acc;
-                        }, {})
-                    });
+                    console.error('Translation failed:', response);
+                    alert(response.data?.message || 'Translation failed. Please try again.');
                 }
             },
             error: function(xhr, status, error) {
-                showResults({
-                    results: targetLanguages.reduce((acc, lang) => {
-                        acc[lang] = { 
-                            success: false, 
-                            message: 'Translation request failed: ' + error
-                        };
-                        return acc;
-                    }, {})
-                });
+                console.error('Ajax error:', {xhr, status, error});
+                alert('Translation failed: ' + error);
             },
             complete: function() {
                 button.prop('disabled', false);
@@ -105,14 +104,12 @@ jQuery(document).ready(function($) {
         const resultsContent = $('.vapt-results-content');
         resultsContent.empty();
 
+        console.log('Showing translation results:', data);
+
         if (data.results) {
             Object.entries(data.results).forEach(([lang, result]) => {
-                const isSuccess = result && (
-                    result === true || 
-                    result.success === true || 
-                    (typeof result === 'object' && result.edit_link)
-                );
-                
+                const isSuccess = result === true || 
+                                (typeof result === 'object' && (result.success === true || result.edit_link));
                 const className = isSuccess ? 'vapt-result-success' : 'vapt-result-error';
                 let message;
                 
@@ -123,8 +120,7 @@ jQuery(document).ready(function($) {
                         message = `<a href="${result.edit_link}" target="_blank">${message}</a>`;
                     }
                 } else {
-                    const errorMsg = (result && result.message) ? result.message : 'Unknown error';
-                    message = `Failed to translate to ${lang}: ${errorMsg}`;
+                    message = `Failed to translate to ${lang}: ${result.message || 'Unknown error'}`;
                 }
 
                 resultsContent.append(
